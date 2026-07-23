@@ -137,7 +137,15 @@
     display:grid; grid-template-columns:220px 1fr; gap:0; border:1px solid var(--line); margin-bottom:16px; background:var(--panel-2);
     border-radius:2px; overflow:hidden;
   }
-  .exercise-card .diagram-box{border-right:1px dashed var(--line); padding:10px; display:flex; align-items:center; justify-content:center; background:#171a1f;}
+  .exercise-card .diagram-box{border-right:1px dashed var(--line); min-height:190px; position:relative; overflow:hidden; background:#171a1f;}
+  .exercise-photo{width:100%;height:100%;min-height:190px;background-image:linear-gradient(0deg,rgba(20,22,26,.34),rgba(20,22,26,.05)),url('assets/workout-photos.png');background-size:200% 300%;background-repeat:no-repeat;}
+  .photo-chest,.photo-triceps{background-position:0 0;}
+  .photo-back,.photo-traps,.photo-forearms{background-position:100% 0;}
+  .photo-shoulders,.photo-abs{background-position:0 50%;}
+  .photo-biceps{background-position:100% 50%;}
+  .photo-quads,.photo-calves{background-position:0 100%;}
+  .photo-hamstrings,.photo-glutes{background-position:100% 100%;}
+  .photo-label{position:absolute;left:10px;bottom:10px;margin:0;background:rgba(20,22,26,.86);border:1px solid var(--line);padding:5px 7px;color:var(--ink);font:10px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;}
   .diagram-svg{width:100%; height:auto; max-height:220px;}
   .body-outline{fill:none; stroke:rgba(231,229,222,0.55); stroke-width:2;}
   .zone{fill:var(--accent); fill-opacity:0.55; stroke:var(--accent); stroke-width:1.5;}
@@ -153,6 +161,7 @@
   .muscle-tag{display:inline-block; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
     color:var(--accent); border:1px solid var(--accent); padding:3px 8px; border-radius:12px; margin-top:8px;}
   .tip{color:var(--muted); font-size:13.5px; margin-top:10px;}
+  .alternative{font-size:12px;color:var(--good);margin:9px 0 0;font-family:'IBM Plex Mono';}
   .card-actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;}
   .card-actions a{
     font-family:'IBM Plex Mono'; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; text-decoration:none;
@@ -312,7 +321,7 @@
 <section class="section" id="workout">
   <div class="wrap">
     <div class="section-head"><span class="idx mono">02</span><h2>Training split</h2><div class="rule"></div></div>
-    <p style="color:var(--muted); max-width:640px; margin-top:-14px; margin-bottom:22px; font-size:14.5px;">Generate your profile above first — the dropdown below shows splits matched to your experience level. Every exercise card includes a schematic showing the exact muscle it targets.</p>
+    <p style="color:var(--muted); max-width:640px; margin-top:-14px; margin-bottom:22px; font-size:14.5px;">Generate your profile above first — the dropdown below shows splits matched to your experience level. Exercise cards now use real gym photographs, name the body part trained, and include a practical alternative.</p>
 
     <div class="split-select-row">
       <div class="field">
@@ -492,6 +501,11 @@ function pickExercises(muscleKey, level, count){
   const matched = pool.filter(e => e.levels.includes(level));
   const list = matched.length ? matched : pool;
   return list.slice(0, count);
+}
+
+function alternativeExercise(muscleKey, level, currentName){
+  const choices = (EX[muscleKey] || []).filter(e => e.levels.includes(level) && e.name !== currentName);
+  return (choices[0] || (EX[muscleKey] || []).find(e => e.name !== currentName))?.name || 'Repeat this movement with a lighter load';
 }
 
 /* ======================================================================
@@ -747,7 +761,7 @@ function renderDay(split, dayIndex){
       const card = document.createElement('div');
       card.className = 'exercise-card';
       card.innerHTML = `
-        <div class="diagram-box">${exerciseImageSVG(muscleKey, ex.name)}</div>
+        <div class="diagram-box"><div class="exercise-photo photo-${muscleKey}"></div><p class="photo-label">Real gym photo · ${MUSCLES[muscleKey].view.toLowerCase()} focus</p></div>
         <div class="exercise-body">
           <div class="top-row">
             <h3>${ex.name}</h3>
@@ -755,6 +769,7 @@ function renderDay(split, dayIndex){
           </div>
           <span class="muscle-tag">${MUSCLES[muscleKey].code} · ${MUSCLES[muscleKey].name}</span>
           <p class="tip">${ex.tip}</p>
+          <p class="alternative">Alternative: ${alternativeExercise(muscleKey, levelForPicks, ex.name)}</p>
           <div class="card-actions">
             <a href="${ytLink(ex.name)}" target="_blank" rel="noopener">▶ Watch form video</a>
           </div>
@@ -860,15 +875,9 @@ const MEAL_TEMPLATES = {
 };
 
 const dietSelections = {
-  breakfastProtein:'Chicken breast',
-  breakfastCarb:'Rice',
-  lunchProtein:'Chicken breast',
-  lunchCarb:'Rice',
-  dinnerProtein:'Chicken breast',
-  dinnerCarb:'Sweet potato',
-  fat:'Peanut butter',
-  whey:'Whey protein',
-  fiber:'Spinach / broccoli'
+  protein:'Chicken breast',
+  carb:'Whole wheat roti',
+  fat:'Peanut butter'
 };
 
 function renderDietSelectors(){
@@ -877,55 +886,18 @@ function renderDietSelectors(){
   const proteinOptions = foods.proteins.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
   const carbOptions = foods.carbs.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
   const fatOptions = foods.fats.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
-  const wheyOptions = foods.proteins.filter(item=>item.name.includes('Whey')).map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
-  const fiberOptions = foods.fiber.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
-
   selectors.innerHTML = `
     <div class="diet-field">
-      <label>Breakfast protein</label>
-      <select id="breakfastProtein">${proteinOptions}</select>
+      <label>Choose protein</label>
+      <select id="dietProtein">${proteinOptions}</select>
     </div>
     <div class="diet-field">
-      <label>Breakfast carb</label>
-      <select id="breakfastCarb">${carbOptions}</select>
+      <label>Choose carb</label>
+      <select id="dietCarb">${carbOptions}</select>
     </div>
     <div class="diet-field">
-      <label>Lunch protein</label>
-      <select id="lunchProtein">${proteinOptions}</select>
-    </div>
-    <div class="diet-field">
-      <label>Lunch carb</label>
-      <select id="lunchCarb">${carbOptions}</select>
-    </div>
-    <div class="diet-field">
-      <label>Dinner protein</label>
-      <select id="dinnerProtein">${proteinOptions}</select>
-    </div>
-    <div class="diet-field">
-      <label>Dinner carb</label>
-      <select id="dinnerCarb">${carbOptions}</select>
-    </div>
-    <div class="diet-field">
-      <label>Healthy fat add-on</label>
-      <select id="fat">${fatOptions}</select>
-    </div>
-    <div class="diet-field">
-      <label>Whey / protein supplement</label>
-      <select id="whey">${wheyOptions || '<option value="Whey protein">Whey protein</option>'}</select>
-    </div>
-    <div class="diet-field">
-      <label>Fiber source</label>
-      <select id="fiber">${fiberOptions}</select>
-    </div>
-    <div class="diet-field">
-      <label>Egg selection note</label>
-      <div class="inline-two">
-        <input type="number" id="eggCount" min="1" max="12" value="2">
-        <select id="eggType">
-          <option value="whole">Whole eggs</option>
-          <option value="white">Only egg whites</option>
-        </select>
-      </div>
+      <label>Choose healthy fat</label>
+      <select id="dietFat">${fatOptions}</select>
     </div>
   `;
 
@@ -938,74 +910,35 @@ function renderDietSelectors(){
 function renderDiet(){
   const p = state.profile;
   const foods = FOOD_SOURCES[state.diet];
-  const meals = MEAL_TEMPLATES[state.goal];
   const el = document.getElementById('dietContent');
 
   const selected = {
-    breakfastProtein: document.getElementById('breakfastProtein')?.value || dietSelections.breakfastProtein,
-    breakfastCarb: document.getElementById('breakfastCarb')?.value || dietSelections.breakfastCarb,
-    lunchProtein: document.getElementById('lunchProtein')?.value || dietSelections.lunchProtein,
-    lunchCarb: document.getElementById('lunchCarb')?.value || dietSelections.lunchCarb,
-    dinnerProtein: document.getElementById('dinnerProtein')?.value || dietSelections.dinnerProtein,
-    dinnerCarb: document.getElementById('dinnerCarb')?.value || dietSelections.dinnerCarb,
-    fat: document.getElementById('fat')?.value || dietSelections.fat,
-    whey: document.getElementById('whey')?.value || dietSelections.whey,
-    fiber: document.getElementById('fiber')?.value || dietSelections.fiber,
-    eggCount: parseInt(document.getElementById('eggCount')?.value || '2', 10),
-    eggType: document.getElementById('eggType')?.value || 'whole'
+    protein: document.getElementById('dietProtein')?.value || dietSelections.protein,
+    carb: document.getElementById('dietCarb')?.value || dietSelections.carb,
+    fat: document.getElementById('dietFat')?.value || dietSelections.fat
   };
 
   const lookup = (name) => [...foods.proteins, ...foods.carbs, ...foods.fats].find(item=>item.name===name) || foods.proteins[0];
-  const fiberItem = foods.fiber.find(item=>item.name===selected.fiber) || foods.fiber[0];
-  const bProtein = lookup(selected.breakfastProtein);
-  const bCarb = lookup(selected.breakfastCarb);
-  const lProtein = lookup(selected.lunchProtein);
-  const lCarb = lookup(selected.lunchCarb);
-  const dProtein = lookup(selected.dinnerProtein);
-  const dCarb = lookup(selected.dinnerCarb);
+  const proteinItem = lookup(selected.protein);
+  const carbItem = lookup(selected.carb);
   const fatItem = lookup(selected.fat);
-  const wheyItem = lookup(selected.whey);
-
-  const mealCalories = {
-    breakfast: Math.round((bProtein.protein * 4) + (bCarb.carbs * 4) + ((bProtein.fat + bCarb.fat) * 9)),
-    lunch: Math.round((lProtein.protein * 4) + (lCarb.carbs * 4) + ((lProtein.fat + lCarb.fat) * 9)),
-    dinner: Math.round((dProtein.protein * 4) + (dCarb.carbs * 4) + ((dProtein.fat + dCarb.fat) * 9)),
-    snack: Math.round((wheyItem.protein * 4) + (wheyItem.carbs * 4) + ((wheyItem.fat + fatItem.fat) * 9))
-  };
-
-  const eggLabel = selected.breakfastProtein.includes('Egg') || selected.lunchProtein.includes('Egg') || selected.dinnerProtein.includes('Egg')
-    ? `Egg note: ${selected.eggCount} ${selected.eggType === 'whole' ? 'whole eggs' : 'egg whites'}`
-    : 'Egg note: choose whole eggs or egg whites for a clean protein option';
-
   const mealRows = [
-    ['Breakfast', `${selected.breakfastProtein} (${bProtein.grams}g)`, `${selected.breakfastCarb} (${bCarb.grams}g)`, `${mealCalories.breakfast} kcal`, `${Math.round(bProtein.protein)}P / ${Math.round(bCarb.carbs)}C / ${Math.round(bProtein.fat+bCarb.fat)}F`],
-    ['Lunch', `${selected.lunchProtein} (${lProtein.grams}g)`, `${selected.lunchCarb} (${lCarb.grams}g)`, `${mealCalories.lunch} kcal`, `${Math.round(lProtein.protein)}P / ${Math.round(lCarb.carbs)}C / ${Math.round(lProtein.fat+lCarb.fat)}F`],
-    ['Dinner', `${selected.dinnerProtein} (${dProtein.grams}g)`, `${selected.dinnerCarb} (${dCarb.grams}g)`, `${mealCalories.dinner} kcal`, `${Math.round(dProtein.protein)}P / ${Math.round(dCarb.carbs)}C / ${Math.round(dProtein.fat+dCarb.fat)}F`],
-    ['Snack / whey', `${selected.whey} (${wheyItem.grams}g)`, `Fat add-on: ${selected.fat} (${fatItem.grams}g)`, `${mealCalories.snack} kcal`, `${Math.round(wheyItem.protein)}P / ${Math.round(wheyItem.carbs)}C / ${Math.round(wheyItem.fat+fatItem.fat)}F`],
+    ['Breakfast', `${selected.protein} (${proteinItem.grams}g)`, `${selected.carb} (${carbItem.grams}g)`, 'Add fruit or curd'],
+    ['Lunch', 'Dal (1.5 cups) + your protein choice', '2 chapatis + seasonal sabzi', 'Add salad and a small serving of your carb choice'],
+    ['Post-workout / snack', 'Whey or curd / Greek yogurt', 'Banana or fruit', `Add ${selected.fat} if it fits your calories`],
+    ['Dinner', `${selected.protein} (${proteinItem.grams}g)`, 'Dal + 2 chapatis + sabzi', 'Use a lighter portion of carbs when cutting']
   ];
-
-  const totalProtein = Math.round(bProtein.protein + lProtein.protein + dProtein.protein + wheyItem.protein + fatItem.protein);
-  const totalCarbs = Math.round(bCarb.carbs + lCarb.carbs + dCarb.carbs + wheyItem.carbs + fatItem.carbs);
-  const totalFat = Math.round(bProtein.fat + bCarb.fat + lProtein.fat + lCarb.fat + dProtein.fat + dCarb.fat + fatItem.fat + wheyItem.fat);
-  const totalFiber = Math.round(fiberItem.fiber + bProtein.fiber + bCarb.fiber + lProtein.fiber + lCarb.fiber + dProtein.fiber + dCarb.fiber);
-  const totalCalories = mealCalories.breakfast + mealCalories.lunch + mealCalories.dinner + mealCalories.snack;
 
   el.innerHTML = `
     <p style="max-width:680px;">Your target is <strong class="mono" style="color:var(--accent2);">${Math.round(p.target)} kcal/day</strong> —
     <strong class="mono" style="color:var(--accent);">${Math.round(p.protein)}g protein</strong>,
     <strong class="mono" style="color:var(--accent2);">${Math.round(p.carbs)}g carbs</strong>,
     <strong class="mono" style="color:var(--good);">${Math.round(p.fat)}g fat</strong>.
-    Use the selectors below to choose your protein, dal, carbs, fats, whey, and fiber. If you pick eggs, the plan calls out how many eggs and whether you want whole eggs or only whites.</p>
-
-    <div class="meal-grid">
-      ${meals.map((m,i)=>{
-        return `<div class="meal-card"><div class="k">Meal ${i+1}</div><h3 style="margin-top:4px;">${m.slot}</h3><p style="color:var(--muted); font-size:13.5px; margin-top:6px;">${m.note}</p></div>`;
-      }).join('')}
-    </div>
+    Choose only one protein, one carb, and one healthy fat. The plan uses those choices while keeping dal, chapati, and sabzi in your daily meals.</p>
 
     <table class="meal-table">
       <thead>
-        <tr><th>Meal</th><th>Protein food</th><th>Carb food</th><th>Total kcal</th><th>Macro estimate</th></tr>
+        <tr><th>Meal</th><th>Protein</th><th>Carbs / vegetables</th><th>How to build it</th></tr>
       </thead>
       <tbody>
         ${mealRows.map(row=>`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td></tr>`).join('')}
@@ -1019,7 +952,7 @@ function renderDiet(){
       <div class="swap-card"><h4>Fiber sources</h4><ul>${foods.fiber.map(f=>`<li>${f.name} · ${f.fiber}g fiber</li>`).join('')}</ul></div>
     </div>
 
-    <div class="note">${eggLabel}. Approximate totals from your selected foods: ${totalProtein}g protein, ${totalCarbs}g carbs, ${totalFat}g fat, ${totalFiber}g fiber, and ${totalCalories} kcal across the day. Adjust the portions with a food scale to get as close as possible to your calorie target.</div>
+    <div class="note">Daily base: 1–2 bowls of dal, 4–6 chapatis (adjust up for bulking and down for cutting), and 2 servings of sabzi. Your selected ${selected.protein}, ${selected.carb}, and ${selected.fat} help you reach the macro targets above. Adjust portions with a food scale if you need closer calorie accuracy.</div>
   `;
 }
 
