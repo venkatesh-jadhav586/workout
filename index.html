@@ -182,6 +182,20 @@
   .flag.veg{background:rgba(111,207,151,0.15); color:var(--good); border:1px solid var(--good);}
   .flag.nonveg{background:rgba(255,90,54,0.15); color:var(--accent); border:1px solid var(--accent);}
 
+  .diet-builder{margin-top:20px; display:grid; grid-template-columns:repeat(auto-fit,minmax(225px,1fr)); gap:14px;}
+  .diet-field{background:var(--panel-2); border:1px solid var(--line); padding:14px; border-radius:2px;}
+  .diet-field label{margin-bottom:6px;}
+  .inline-two{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .day-slab{background:var(--panel-2); border:1px solid var(--line); padding:16px; margin-bottom:16px; border-radius:2px;}
+  .day-slab h4{font-family:'Oswald'; font-size:18px; margin:0 0 10px; text-transform:uppercase;}
+  .tiny-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-top:10px;}
+  .tiny-card{background:var(--panel); border:1px solid var(--line); padding:12px;}
+  .tiny-card .k{font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:0.1em; color:var(--accent2); text-transform:uppercase;}
+  .tiny-card p{margin:8px 0 0; color:var(--muted); font-size:13px;}
+  .meal-table{width:100%; border-collapse:collapse; margin-top:18px; background:var(--panel-2); border:1px solid var(--line);}
+  .meal-table th, .meal-table td{padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; font-size:13px;}
+  .meal-table th{font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent2);}
+  .meal-table tr:last-child td{border-bottom:none;}
   .note{font-size:12.5px; color:var(--muted); border-left:2px solid var(--accent2); padding:10px 14px; margin-top:24px; background:rgba(242,194,48,0.06);}
 
   footer{border-top:1px solid var(--line); padding:30px 0; margin-top:40px; color:var(--muted); font-family:'IBM Plex Mono'; font-size:11px; text-align:center;}
@@ -319,6 +333,7 @@
 <section class="section" id="diet">
   <div class="wrap">
     <div class="section-head"><span class="idx mono">03</span><h2>Fuel plan</h2><div class="rule"></div></div>
+    <div id="dietSelectors" class="diet-builder"></div>
     <div id="dietContent" style="color:var(--muted); font-size:14.5px;">Generate your profile above to see a meal structure sized to your calories and macros.</div>
   </div>
 </section>
@@ -385,6 +400,20 @@ function diagramSVG(muscleKey){
     <text x="${m.label.x}" y="${m.label.y}" class="label-code">${m.code}</text>
     <text x="${m.label.x}" y="${m.label.y+14}" class="label-name">${m.name}</text>
     <text x="16" y="20" class="view-tag">${m.view} VIEW</text>
+  </svg>`;
+}
+
+function exerciseImageSVG(muscleKey, exName){
+  const m = MUSCLES[muscleKey] || MUSCLES.chest;
+  return `<svg viewBox="0 0 280 220" class="diagram-svg" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="280" height="220" fill="#171a1f" />
+    <rect x="18" y="24" width="244" height="172" rx="12" fill="rgba(255,90,54,0.08)" stroke="rgba(231,229,222,0.14)"/>
+    <path d="M44 116c18-24 42-40 70-40 23 0 50 10 70 34" stroke="var(--accent2)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <rect x="66" y="44" width="22" height="76" rx="11" fill="var(--accent)" fill-opacity="0.65"/>
+    <rect x="190" y="44" width="22" height="76" rx="11" fill="var(--accent)" fill-opacity="0.65"/>
+    <rect x="58" y="74" width="164" height="42" rx="14" fill="rgba(242,194,48,0.22)" stroke="var(--accent2)"/>
+    <text x="140" y="190" text-anchor="middle" class="label-code" fill="#f2c230">${m.code}</text>
+    <text x="140" y="206" text-anchor="middle" class="label-name">${exName}</text>
   </svg>`;
 }
 
@@ -469,46 +498,94 @@ function pickExercises(muscleKey, level, count){
    SPLIT PROGRAMS
    ====================================================================== */
 const SPLITS = {
-  fullbody: {
-    label:'Full Body (3x / week) — Beginner',
-    level:'beginner',
+  pushpulllegs: {
+    label:'Push / Pull / Legs Split — Beginner / Intermediate',
+    level:'both',
     days:[
-      {name:'Day 1 — Full Body A', groups:[['quads',1],['chest',1],['back',1],['shoulders',1],['abs',1]]},
-      {name:'Day 2 — Full Body B', groups:[['hamstrings',1],['back',1],['chest',1],['biceps',1],['abs',1]]},
-      {name:'Day 3 — Full Body C', groups:[['glutes',1],['shoulders',1],['triceps',1],['back',1],['calves',1]]},
+      {
+        name:'Day 1 — Push (Chest / Shoulders / Triceps)',
+        groups:[['chest',2],['shoulders',1],['triceps',2]],
+        warmup:['5 min bike or brisk walk', 'Arm circles 15 reps', 'Band pull-aparts 15 reps', 'Push-up plus 2x10'],
+        stretches:['Doorway chest stretch 30 sec/side', 'Overhead triceps stretch 30 sec/side', 'Cross-body shoulder stretch 30 sec/side']
+      },
+      {
+        name:'Day 2 — Pull (Back / Biceps / Rear Delts)',
+        groups:[['back',3],['biceps',2],['traps',1]],
+        warmup:['5 min rower or treadmill', 'Scapular pull-ups 2x10', 'Face pulls 2x15', 'Light straight-arm pulldown 2x12'],
+        stretches:['Lat stretch 30 sec/side', 'Biceps stretch 30 sec/side', 'Child’s pose 45 sec']
+      },
+      {
+        name:'Day 3 — Legs (Quads / Hamstrings / Glutes / Calves)',
+        groups:[['quads',2],['hamstrings',2],['glutes',1],['calves',1]],
+        warmup:['Bodyweight squat 2x12', 'Walking lunge 2x10/leg', 'Hip hinge practice 2x10', 'Ankle circles 15 each'],
+        stretches:['Standing quad stretch 30 sec/side', 'Hamstring stretch 30 sec/side', 'Glute stretch 30 sec/side', 'Calf stretch 30 sec/side']
+      }
+    ]
+  },
+  chesttriceps: {
+    label:'Chest & Triceps Split — Beginner / Intermediate',
+    level:'both',
+    days:[
+      {
+        name:'Day 1 — Chest + Triceps',
+        groups:[['chest',2],['triceps',2],['shoulders',1]],
+        warmup:['Incline treadmill 3 min', 'Push-up to down dog 2x8', 'Band chest fly 2x15', 'Shoulder dislocates 10 reps'],
+        stretches:['Doorway pec stretch 30 sec/side', 'Overhead triceps stretch 30 sec/side', 'Forearm stretch 30 sec/side']
+      }
+    ]
+  },
+  backbiceps: {
+    label:'Back & Biceps Split — Beginner / Intermediate',
+    level:'both',
+    days:[
+      {
+        name:'Day 1 — Back + Biceps',
+        groups:[['back',3],['biceps',2],['traps',1]],
+        warmup:['5 min row', 'Scapular retractions 2x12', 'Light pulldown 2x12', 'Elbow circles 15 each'],
+        stretches:['Lat stretch 30 sec/side', 'Biceps stretch 30 sec/side', 'Upper-back stretch 30 sec']
+      }
+    ]
+  },
+  shoulderlegs: {
+    label:'Shoulders & Legs Split — Beginner / Intermediate',
+    level:'both',
+    days:[
+      {
+        name:'Day 1 — Shoulders + Legs',
+        groups:[['shoulders',2],['quads',2],['hamstrings',1],['glutes',1]],
+        warmup:['Arm circles 15 each', 'Bodyweight squat 2x12', 'Walking lunge 2x10/leg', 'Band external rotations 2x15'],
+        stretches:['Doorway shoulder stretch 30 sec/side', 'Quadriceps stretch 30 sec/side', 'Hamstring stretch 30 sec/side']
+      }
     ]
   },
   upperlower: {
     label:'Upper / Lower Split (4x / week) — Beginner or Intermediate',
     level:'both',
     days:[
-      {name:'Day 1 — Upper A', groups:[['chest',2],['back',2],['shoulders',1],['triceps',1]]},
-      {name:'Day 2 — Lower A', groups:[['quads',2],['hamstrings',1],['glutes',1],['calves',1]]},
-      {name:'Day 3 — Upper B', groups:[['back',2],['chest',1],['biceps',1],['shoulders',1]]},
-      {name:'Day 4 — Lower B', groups:[['hamstrings',2],['quads',1],['glutes',1],['abs',1]]},
+      {name:'Day 1 — Upper A', groups:[['chest',2],['back',2],['shoulders',1],['triceps',1]], warmup:['5 min warm-up cardio','Band pull-aparts 15 reps','Light dumbbell press 2x10'], stretches:['Pec stretch 30 sec/side','Lat stretch 30 sec/side']},
+      {name:'Day 2 — Lower A', groups:[['quads',2],['hamstrings',1],['glutes',1],['calves',1]], warmup:['Squat to stand 2x10','Glute bridge 2x12','Leg swings 15/side'], stretches:['Quad stretch 30 sec/side','Hamstring stretch 30 sec/side']},
+      {name:'Day 3 — Upper B', groups:[['back',2],['chest',1],['biceps',1],['shoulders',1]], warmup:['Pulldown warm-up 2x12','Arm circles 15 reps','Face pulls 15 reps'], stretches:['Lat stretch 30 sec/side','Cross-body shoulder stretch 30 sec/side']},
+      {name:'Day 4 — Lower B', groups:[['hamstrings',2],['quads',1],['glutes',1],['abs',1]], warmup:['Hip hinge 2x10','Walking lunge 2x10/leg','Light RDL 2x10'], stretches:['Glute stretch 30 sec/side','Hamstring stretch 30 sec/side','Hip flexor stretch 30 sec/side']},
     ]
   },
-  ppl: {
-    label:'Push / Pull / Legs (6x / week) — Intermediate',
-    level:'intermediate',
+  fullbody: {
+    label:'Full Body (3x / week) — Beginner',
+    level:'beginner',
     days:[
-      {name:'Day 1 — Push (Chest / Shoulders / Triceps)', groups:[['chest',2],['shoulders',2],['triceps',2]]},
-      {name:'Day 2 — Pull (Back / Biceps / Traps)', groups:[['back',3],['traps',1],['biceps',2]]},
-      {name:'Day 3 — Legs (Quads / Hamstrings / Glutes / Calves)', groups:[['quads',2],['hamstrings',2],['glutes',1],['calves',1]]},
-      {name:'Day 4 — Push 2', groups:[['chest',2],['shoulders',1],['triceps',2]]},
-      {name:'Day 5 — Pull 2', groups:[['back',2],['biceps',2],['forearms',1]]},
-      {name:'Day 6 — Legs 2', groups:[['hamstrings',2],['quads',2],['glutes',1],['calves',1]]},
+      {name:'Day 1 — Full Body A', groups:[['quads',1],['chest',1],['back',1],['shoulders',1],['abs',1]], warmup:['5 min treadmill','Air squats 2x12','Push-up 2x8','Light row 2x12'], stretches:['Quad stretch 30 sec/side','Chest stretch 30 sec/side']},
+      {name:'Day 2 — Full Body B', groups:[['hamstrings',1],['back',1],['chest',1],['biceps',1],['abs',1]], warmup:['Hip hinge 2x10','Band rows 2x15','Light curls 2x12'], stretches:['Hamstring stretch 30 sec/side','Biceps stretch 30 sec/side']},
+      {name:'Day 3 — Full Body C', groups:[['glutes',1],['shoulders',1],['triceps',1],['back',1],['calves',1]], warmup:['Glute bridge 2x12','Shoulder press warm-up 2x10','Calf raise 2x15'], stretches:['Glute stretch 30 sec/side','Shoulder stretch 30 sec/side','Calf stretch 30 sec/side']},
     ]
   },
   brosplit: {
     label:'Bro Split (5x / week — one muscle per day) — Intermediate',
     level:'intermediate',
     days:[
-      {name:'Day 1 — Chest', groups:[['chest',4]]},
-      {name:'Day 2 — Back', groups:[['back',3],['traps',1]]},
-      {name:'Day 3 — Shoulders', groups:[['shoulders',3],['traps',1]]},
-      {name:'Day 4 — Legs', groups:[['quads',2],['hamstrings',2],['glutes',1],['calves',1]]},
-      {name:'Day 5 — Arms', groups:[['biceps',3],['triceps',3],['forearms',1]]},
+      {name:'Day 1 — Chest', groups:[['chest',4]], warmup:['3 min cardio','Push-up 2x10','Band fly 2x12'], stretches:['Doorway pec stretch 30 sec/side','Triceps stretch 30 sec/side']},
+      {name:'Day 2 — Back', groups:[['back',3],['traps',1]], warmup:['Row warm-up 2x12','Scapular retractions 2x15'], stretches:['Lat stretch 30 sec/side','Upper-back stretch 30 sec']},
+      {name:'Day 3 — Shoulders', groups:[['shoulders',3],['traps',1]], warmup:['Band external rotation 2x15','Light press 2x10'], stretches:['Cross-body shoulder stretch 30 sec/side','Neck mobility 20 sec/side']},
+      {name:'Day 4 — Legs', groups:[['quads',2],['hamstrings',2],['glutes',1],['calves',1]], warmup:['Squat 2x10','Lunge 2x10/leg'], stretches:['Quad stretch 30 sec/side','Hamstring stretch 30 sec/side']},
+      {name:'Day 5 — Arms', groups:[['biceps',3],['triceps',3],['forearms',1]], warmup:['Light curls 2x12','Cable pushdowns 2x12'], stretches:['Biceps stretch 30 sec/side','Triceps stretch 30 sec/side']},
     ]
   },
 };
@@ -533,6 +610,21 @@ bindToggle('toggleGender','gender');
 bindToggle('toggleGoal','goal');
 bindToggle('toggleDiet','diet');
 bindToggle('toggleLevel','level');
+
+function onDietPreferenceChange(){
+  renderDietSelectors();
+  renderDiet();
+}
+
+const dietToggleWrap = document.getElementById('toggleDiet');
+dietToggleWrap.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    dietToggleWrap.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.diet = btn.dataset.val;
+    onDietPreferenceChange();
+  });
+});
 
 function calcProfile(){
   const w = parseFloat(document.getElementById('inWeight').value);
@@ -559,6 +651,7 @@ function calcProfile(){
 
   state.profile = {w,h,a,bmi,bmr,tdee,target,protein,fat,carbs,proteinCal,fatCal,carbCal};
   renderResults();
+  renderDietSelectors();
   renderDiet();
   renderSupplements();
   populateSplitDropdown();
@@ -637,13 +730,24 @@ function renderDay(split, dayIndex){
   content.innerHTML = '';
   const levelForPicks = split.level === 'both' ? state.level : split.level;
 
+  const slab = document.createElement('div');
+  slab.className = 'day-slab';
+  slab.innerHTML = `
+    <h4>${day.name}</h4>
+    <div class="tiny-grid">
+      <div class="tiny-card"><div class="k">Before workout warm-up</div><p>${(day.warmup || []).join(' • ')}</p></div>
+      <div class="tiny-card"><div class="k">After workout stretching</div><p>${(day.stretches || []).join(' • ')}</p></div>
+    </div>
+  `;
+  content.appendChild(slab);
+
   day.groups.forEach(([muscleKey, count])=>{
     const exercises = pickExercises(muscleKey, levelForPicks, count);
     exercises.forEach(ex=>{
       const card = document.createElement('div');
       card.className = 'exercise-card';
       card.innerHTML = `
-        <div class="diagram-box">${diagramSVG(muscleKey)}</div>
+        <div class="diagram-box">${exerciseImageSVG(muscleKey, ex.name)}</div>
         <div class="exercise-body">
           <div class="top-row">
             <h3>${ex.name}</h3>
@@ -666,34 +770,170 @@ function renderDay(split, dayIndex){
    ====================================================================== */
 const FOOD_SOURCES = {
   nonveg: {
-    protein:['Chicken breast','Eggs / egg whites','Fish (rohu, salmon, tuna)','Whey protein','Greek yogurt'],
-    carbs:['Rice','Oats','Sweet potato','Whole wheat roti','Banana / fruit'],
-    fats:['Peanut butter','Olive oil','Almonds / walnuts','Egg yolks','Avocado']
+    proteins:[
+      {name:'Chicken breast', grams:150, protein:46, carbs:0, fat:3, fiber:0},
+      {name:'Whole eggs (2 eggs)', grams:100, protein:12, carbs:1, fat:8, fiber:0},
+      {name:'Egg whites (200g)', grams:200, protein:22, carbs:2, fat:0, fiber:0},
+      {name:'Fish (rohu / salmon / tuna)', grams:150, protein:34, carbs:0, fat:8, fiber:0},
+      {name:'Greek yogurt', grams:200, protein:20, carbs:6, fat:0, fiber:0},
+      {name:'Moong dal / chana dal', grams:200, protein:18, carbs:30, fat:1, fiber:10},
+      {name:'Whey protein', grams:30, protein:24, carbs:2, fat:1, fiber:0}
+    ],
+    carbs:[
+      {name:'Rice', grams:200, protein:4, carbs:45, fat:1, fiber:1},
+      {name:'Oats', grams:100, protein:12, carbs:67, fat:6, fiber:8},
+      {name:'Sweet potato', grams:250, protein:4, carbs:45, fat:0, fiber:7},
+      {name:'Whole wheat roti', grams:120, protein:6, carbs:32, fat:3, fiber:5},
+      {name:'Banana', grams:120, protein:1, carbs:27, fat:0, fiber:3},
+      {name:'Fruit bowl (apple + berries)', grams:150, protein:1, carbs:28, fat:0, fiber:6}
+    ],
+    fats:[
+      {name:'Peanut butter', grams:30, protein:8, carbs:3, fat:16, fiber:2},
+      {name:'Olive oil', grams:15, protein:0, carbs:0, fat:14, fiber:0},
+      {name:'Almonds', grams:20, protein:6, carbs:2, fat:11, fiber:3},
+      {name:'Egg yolks', grams:50, protein:3, carbs:0, fat:5, fiber:0},
+      {name:'Avocado', grams:100, protein:2, carbs:9, fat:15, fiber:7}
+    ],
+    fiber:[
+      {name:'Spinach / broccoli', grams:150, fiber:5},
+      {name:'Cauliflower / cabbage', grams:150, fiber:4},
+      {name:'Beans / peas', grams:150, fiber:8},
+      {name:'Fruit bowl', grams:150, fiber:6}
+    ]
   },
   veg: {
-    protein:['Paneer','Tofu / soy chunks','Lentils (dal, moong, chana)','Whey protein (dairy-based)','Greek yogurt / curd'],
-    carbs:['Rice','Oats','Sweet potato','Whole wheat roti','Banana / fruit'],
-    fats:['Peanut butter','Ghee','Almonds / walnuts','Olive oil','Avocado']
+    proteins:[
+      {name:'Paneer', grams:150, protein:34, carbs:3, fat:18, fiber:0},
+      {name:'Tofu / soy chunks', grams:150, protein:28, carbs:6, fat:9, fiber:3},
+      {name:'Greek yogurt / curd', grams:200, protein:20, carbs:6, fat:0, fiber:0},
+      {name:'Whole eggs (2 eggs)', grams:100, protein:12, carbs:1, fat:8, fiber:0},
+      {name:'Egg whites (200g)', grams:200, protein:22, carbs:2, fat:0, fiber:0},
+      {name:'Moong dal / chana dal', grams:200, protein:18, carbs:30, fat:1, fiber:10},
+      {name:'Whey protein', grams:30, protein:24, carbs:2, fat:1, fiber:0}
+    ],
+    carbs:[
+      {name:'Rice', grams:200, protein:4, carbs:45, fat:1, fiber:1},
+      {name:'Oats', grams:100, protein:12, carbs:67, fat:6, fiber:8},
+      {name:'Sweet potato', grams:250, protein:4, carbs:45, fat:0, fiber:7},
+      {name:'Whole wheat roti', grams:120, protein:6, carbs:32, fat:3, fiber:5},
+      {name:'Banana', grams:120, protein:1, carbs:27, fat:0, fiber:3},
+      {name:'Fruit bowl (apple + berries)', grams:150, protein:1, carbs:28, fat:0, fiber:6}
+    ],
+    fats:[
+      {name:'Peanut butter', grams:30, protein:8, carbs:3, fat:16, fiber:2},
+      {name:'Ghee', grams:15, protein:0, carbs:0, fat:12, fiber:0},
+      {name:'Almonds', grams:20, protein:6, carbs:2, fat:11, fiber:3},
+      {name:'Olive oil', grams:15, protein:0, carbs:0, fat:14, fiber:0},
+      {name:'Avocado', grams:100, protein:2, carbs:9, fat:15, fiber:7}
+    ],
+    fiber:[
+      {name:'Spinach / broccoli', grams:150, fiber:5},
+      {name:'Cauliflower / cabbage', grams:150, fiber:4},
+      {name:'Beans / peas', grams:150, fiber:8},
+      {name:'Fruit bowl', grams:150, fiber:6}
+    ]
   }
 };
 
 const MEAL_TEMPLATES = {
-  bulk: ['Breakfast — bigger portion, carbs + protein to start the day strong',
-         'Lunch — largest meal, protein + rice/roti + vegetables',
-         'Pre/Post-workout — fast carbs + protein shake',
-         'Dinner — protein + complex carbs + healthy fat',
-         'Before bed — casein-style protein or paneer/curd (slow-digesting)'],
-  cut: ['Breakfast — protein-forward, moderate carbs to control hunger',
-        'Lunch — protein + high-volume vegetables + controlled carb portion',
-        'Post-workout — protein shake + small carb source',
-        'Dinner — lean protein + vegetables, lighter on carbs/fats',
-        'Snack — high-volume, low-calorie option (fruit, curd) if hungry'],
-  maintain: ['Breakfast — balanced protein + carbs',
-             'Lunch — protein + rice/roti + vegetables',
-             'Snack — fruit or nuts',
-             'Dinner — protein + vegetables + moderate carbs',
-             'Optional — protein shake around training']
+  bulk: [
+    {slot:'Breakfast', note:'Bigger carb + protein portion to start the day strong'},
+    {slot:'Lunch', note:'Largest meal: protein + rice/roti + vegetables'},
+    {slot:'Pre/Post workout', note:'Fast carbs + whey protein shake'},
+    {slot:'Dinner', note:'Protein + complex carbs + healthy fat'},
+    {slot:'Before bed', note:'Slow-digesting protein or curd / paneer'}
+  ],
+  cut: [
+    {slot:'Breakfast', note:'Protein-forward, moderate carbs to control hunger'},
+    {slot:'Lunch', note:'Protein + vegetables + controlled carbs'},
+    {slot:'Post workout', note:'Protein shake + small carb source'},
+    {slot:'Dinner', note:'Lean protein + vegetables, lighter carbs/fats'},
+    {slot:'Snack', note:'Fruit, curd, or high-volume veg bowl if needed'}
+  ],
+  maintain: [
+    {slot:'Breakfast', note:'Balanced protein + carbs'},
+    {slot:'Lunch', note:'Protein + rice/roti + vegetables'},
+    {slot:'Snack', note:'Fruit or nuts'},
+    {slot:'Dinner', note:'Protein + vegetables + moderate carbs'},
+    {slot:'Optional', note:'Protein shake around training'}
+  ]
 };
+
+const dietSelections = {
+  breakfastProtein:'Chicken breast',
+  breakfastCarb:'Rice',
+  lunchProtein:'Chicken breast',
+  lunchCarb:'Rice',
+  dinnerProtein:'Chicken breast',
+  dinnerCarb:'Sweet potato',
+  fat:'Peanut butter',
+  whey:'Whey protein',
+  fiber:'Spinach / broccoli'
+};
+
+function renderDietSelectors(){
+  const selectors = document.getElementById('dietSelectors');
+  const foods = FOOD_SOURCES[state.diet];
+  const proteinOptions = foods.proteins.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
+  const carbOptions = foods.carbs.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
+  const fatOptions = foods.fats.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
+  const wheyOptions = foods.proteins.filter(item=>item.name.includes('Whey')).map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
+  const fiberOptions = foods.fiber.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
+
+  selectors.innerHTML = `
+    <div class="diet-field">
+      <label>Breakfast protein</label>
+      <select id="breakfastProtein">${proteinOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Breakfast carb</label>
+      <select id="breakfastCarb">${carbOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Lunch protein</label>
+      <select id="lunchProtein">${proteinOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Lunch carb</label>
+      <select id="lunchCarb">${carbOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Dinner protein</label>
+      <select id="dinnerProtein">${proteinOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Dinner carb</label>
+      <select id="dinnerCarb">${carbOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Healthy fat add-on</label>
+      <select id="fat">${fatOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Whey / protein supplement</label>
+      <select id="whey">${wheyOptions || '<option value="Whey protein">Whey protein</option>'}</select>
+    </div>
+    <div class="diet-field">
+      <label>Fiber source</label>
+      <select id="fiber">${fiberOptions}</select>
+    </div>
+    <div class="diet-field">
+      <label>Egg selection note</label>
+      <div class="inline-two">
+        <input type="number" id="eggCount" min="1" max="12" value="2">
+        <select id="eggType">
+          <option value="whole">Whole eggs</option>
+          <option value="white">Only egg whites</option>
+        </select>
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll('#dietSelectors select, #dietSelectors input').forEach(elm=>{
+    elm.addEventListener('change', renderDiet);
+    elm.addEventListener('input', renderDiet);
+  });
+}
 
 function renderDiet(){
   const p = state.profile;
@@ -701,25 +941,85 @@ function renderDiet(){
   const meals = MEAL_TEMPLATES[state.goal];
   const el = document.getElementById('dietContent');
 
+  const selected = {
+    breakfastProtein: document.getElementById('breakfastProtein')?.value || dietSelections.breakfastProtein,
+    breakfastCarb: document.getElementById('breakfastCarb')?.value || dietSelections.breakfastCarb,
+    lunchProtein: document.getElementById('lunchProtein')?.value || dietSelections.lunchProtein,
+    lunchCarb: document.getElementById('lunchCarb')?.value || dietSelections.lunchCarb,
+    dinnerProtein: document.getElementById('dinnerProtein')?.value || dietSelections.dinnerProtein,
+    dinnerCarb: document.getElementById('dinnerCarb')?.value || dietSelections.dinnerCarb,
+    fat: document.getElementById('fat')?.value || dietSelections.fat,
+    whey: document.getElementById('whey')?.value || dietSelections.whey,
+    fiber: document.getElementById('fiber')?.value || dietSelections.fiber,
+    eggCount: parseInt(document.getElementById('eggCount')?.value || '2', 10),
+    eggType: document.getElementById('eggType')?.value || 'whole'
+  };
+
+  const lookup = (name) => [...foods.proteins, ...foods.carbs, ...foods.fats].find(item=>item.name===name) || foods.proteins[0];
+  const fiberItem = foods.fiber.find(item=>item.name===selected.fiber) || foods.fiber[0];
+  const bProtein = lookup(selected.breakfastProtein);
+  const bCarb = lookup(selected.breakfastCarb);
+  const lProtein = lookup(selected.lunchProtein);
+  const lCarb = lookup(selected.lunchCarb);
+  const dProtein = lookup(selected.dinnerProtein);
+  const dCarb = lookup(selected.dinnerCarb);
+  const fatItem = lookup(selected.fat);
+  const wheyItem = lookup(selected.whey);
+
+  const mealCalories = {
+    breakfast: Math.round((bProtein.protein * 4) + (bCarb.carbs * 4) + ((bProtein.fat + bCarb.fat) * 9)),
+    lunch: Math.round((lProtein.protein * 4) + (lCarb.carbs * 4) + ((lProtein.fat + lCarb.fat) * 9)),
+    dinner: Math.round((dProtein.protein * 4) + (dCarb.carbs * 4) + ((dProtein.fat + dCarb.fat) * 9)),
+    snack: Math.round((wheyItem.protein * 4) + (wheyItem.carbs * 4) + ((wheyItem.fat + fatItem.fat) * 9))
+  };
+
+  const eggLabel = selected.breakfastProtein.includes('Egg') || selected.lunchProtein.includes('Egg') || selected.dinnerProtein.includes('Egg')
+    ? `Egg note: ${selected.eggCount} ${selected.eggType === 'whole' ? 'whole eggs' : 'egg whites'}`
+    : 'Egg note: choose whole eggs or egg whites for a clean protein option';
+
+  const mealRows = [
+    ['Breakfast', `${selected.breakfastProtein} (${bProtein.grams}g)`, `${selected.breakfastCarb} (${bCarb.grams}g)`, `${mealCalories.breakfast} kcal`, `${Math.round(bProtein.protein)}P / ${Math.round(bCarb.carbs)}C / ${Math.round(bProtein.fat+bCarb.fat)}F`],
+    ['Lunch', `${selected.lunchProtein} (${lProtein.grams}g)`, `${selected.lunchCarb} (${lCarb.grams}g)`, `${mealCalories.lunch} kcal`, `${Math.round(lProtein.protein)}P / ${Math.round(lCarb.carbs)}C / ${Math.round(lProtein.fat+lCarb.fat)}F`],
+    ['Dinner', `${selected.dinnerProtein} (${dProtein.grams}g)`, `${selected.dinnerCarb} (${dCarb.grams}g)`, `${mealCalories.dinner} kcal`, `${Math.round(dProtein.protein)}P / ${Math.round(dCarb.carbs)}C / ${Math.round(dProtein.fat+dCarb.fat)}F`],
+    ['Snack / whey', `${selected.whey} (${wheyItem.grams}g)`, `Fat add-on: ${selected.fat} (${fatItem.grams}g)`, `${mealCalories.snack} kcal`, `${Math.round(wheyItem.protein)}P / ${Math.round(wheyItem.carbs)}C / ${Math.round(wheyItem.fat+fatItem.fat)}F`],
+  ];
+
+  const totalProtein = Math.round(bProtein.protein + lProtein.protein + dProtein.protein + wheyItem.protein + fatItem.protein);
+  const totalCarbs = Math.round(bCarb.carbs + lCarb.carbs + dCarb.carbs + wheyItem.carbs + fatItem.carbs);
+  const totalFat = Math.round(bProtein.fat + bCarb.fat + lProtein.fat + lCarb.fat + dProtein.fat + dCarb.fat + fatItem.fat + wheyItem.fat);
+  const totalFiber = Math.round(fiberItem.fiber + bProtein.fiber + bCarb.fiber + lProtein.fiber + lCarb.fiber + dProtein.fiber + dCarb.fiber);
+  const totalCalories = mealCalories.breakfast + mealCalories.lunch + mealCalories.dinner + mealCalories.snack;
+
   el.innerHTML = `
     <p style="max-width:680px;">Your target is <strong class="mono" style="color:var(--accent2);">${Math.round(p.target)} kcal/day</strong> —
     <strong class="mono" style="color:var(--accent);">${Math.round(p.protein)}g protein</strong>,
     <strong class="mono" style="color:var(--accent2);">${Math.round(p.carbs)}g carbs</strong>,
     <strong class="mono" style="color:var(--good);">${Math.round(p.fat)}g fat</strong>.
-    Use the meal structure below and the food lists to build meals that add up to these numbers — exact grams will depend on which foods you pick, so weigh portions as you go.</p>
+    Use the selectors below to choose your protein, dal, carbs, fats, whey, and fiber. If you pick eggs, the plan calls out how many eggs and whether you want whole eggs or only whites.</p>
 
     <div class="meal-grid">
       ${meals.map((m,i)=>{
-        const [title, desc] = m.split(' — ');
-        return `<div class="meal-card"><div class="k">Meal ${i+1}</div><h3 style="margin-top:4px;">${title}</h3><p style="color:var(--muted); font-size:13.5px; margin-top:6px;">${desc}</p></div>`;
+        return `<div class="meal-card"><div class="k">Meal ${i+1}</div><h3 style="margin-top:4px;">${m.slot}</h3><p style="color:var(--muted); font-size:13.5px; margin-top:6px;">${m.note}</p></div>`;
       }).join('')}
     </div>
 
+    <table class="meal-table">
+      <thead>
+        <tr><th>Meal</th><th>Protein food</th><th>Carb food</th><th>Total kcal</th><th>Macro estimate</th></tr>
+      </thead>
+      <tbody>
+        ${mealRows.map(row=>`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td></tr>`).join('')}
+      </tbody>
+    </table>
+
     <div class="swap-tables">
-      <div class="swap-card"><h4>Protein sources (${state.diet === 'veg' ? 'Vegetarian' : 'Non-Veg'})</h4><ul>${foods.protein.map(f=>`<li>${f}</li>`).join('')}</ul></div>
-      <div class="swap-card"><h4>Carb sources</h4><ul>${foods.carbs.map(f=>`<li>${f}</li>`).join('')}</ul></div>
-      <div class="swap-card"><h4>Fat sources</h4><ul>${foods.fats.map(f=>`<li>${f}</li>`).join('')}</ul></div>
+      <div class="swap-card"><h4>Protein sources (${state.diet === 'veg' ? 'Vegetarian' : 'Non-Veg'})</h4><ul>${foods.proteins.map(f=>`<li>${f.name} · ${f.grams}g portion</li>`).join('')}</ul></div>
+      <div class="swap-card"><h4>Carb sources</h4><ul>${foods.carbs.map(f=>`<li>${f.name} · ${f.grams}g portion</li>`).join('')}</ul></div>
+      <div class="swap-card"><h4>Fat sources</h4><ul>${foods.fats.map(f=>`<li>${f.name} · ${f.grams}g portion</li>`).join('')}</ul></div>
+      <div class="swap-card"><h4>Fiber sources</h4><ul>${foods.fiber.map(f=>`<li>${f.name} · ${f.fiber}g fiber</li>`).join('')}</ul></div>
     </div>
+
+    <div class="note">${eggLabel}. Approximate totals from your selected foods: ${totalProtein}g protein, ${totalCarbs}g carbs, ${totalFat}g fat, ${totalFiber}g fiber, and ${totalCalories} kcal across the day. Adjust the portions with a food scale to get as close as possible to your calorie target.</div>
   `;
 }
 
