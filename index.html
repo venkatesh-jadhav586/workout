@@ -145,6 +145,8 @@
   .photo-biceps{background-position:100% 50%;}
   .photo-quads,.photo-calves{background-position:0 100%;}
   .photo-hamstrings,.photo-glutes{background-position:100% 100%;}
+  .photo-alt-pushup,.photo-alt-fly,.photo-alt-row,.photo-alt-pushdown,.photo-alt-hipthrust,.photo-alt-calf{background-image:linear-gradient(0deg,rgba(20,22,26,.34),rgba(20,22,26,.05)),url('assets/workout-photos-alt.png');}
+  .photo-alt-pushup{background-position:0 0;}.photo-alt-fly{background-position:100% 0;}.photo-alt-row{background-position:0 50%;}.photo-alt-pushdown{background-position:100% 50%;}.photo-alt-hipthrust{background-position:0 100%;}.photo-alt-calf{background-position:100% 100%;}
   .photo-label{position:absolute;left:10px;bottom:10px;margin:0;background:rgba(20,22,26,.86);border:1px solid var(--line);padding:5px 7px;color:var(--ink);font:10px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;}
   .diagram-svg{width:100%; height:auto; max-height:220px;}
   .body-outline{fill:none; stroke:rgba(231,229,222,0.55); stroke-width:2;}
@@ -297,6 +299,14 @@
           <div class="toggle-row" id="toggleLevel">
             <button data-val="beginner" class="active">Beginner</button>
             <button data-val="intermediate">Intermediate</button>
+          </div>
+        </div>
+        <div>
+          <label>Workout time</label>
+          <div class="toggle-row" id="toggleWorkoutTime">
+            <button data-val="morning" class="active">Morning</button>
+            <button data-val="afternoon">Afternoon</button>
+            <button data-val="evening">Evening</button>
           </div>
         </div>
       </div>
@@ -508,6 +518,17 @@ function alternativeExercise(muscleKey, level, currentName){
   return (choices[0] || (EX[muscleKey] || []).find(e => e.name !== currentName))?.name || 'Repeat this movement with a lighter load';
 }
 
+function photoClass(exercise, muscleKey){
+  const name = exercise.name.toLowerCase();
+  if(name.includes('push-up')) return 'photo-alt-pushup';
+  if(name.includes('fly')) return 'photo-alt-fly';
+  if(name.includes('row')) return 'photo-alt-row';
+  if(name.includes('pushdown')) return 'photo-alt-pushdown';
+  if(name.includes('hip thrust') || name.includes('glute bridge') || name.includes('kickback')) return 'photo-alt-hipthrust';
+  if(name.includes('calf raise')) return 'photo-alt-calf';
+  return `photo-${muscleKey}`;
+}
+
 /* ======================================================================
    SPLIT PROGRAMS
    ====================================================================== */
@@ -607,7 +628,7 @@ const SPLITS = {
 /* ======================================================================
    PROFILE STATE + CALC
    ====================================================================== */
-const state = { gender:'male', goal:'bulk', diet:'nonveg', level:'beginner', profile:null };
+const state = { gender:'male', goal:'bulk', diet:'nonveg', level:'beginner', workoutTime:'morning', profile:null };
 
 function bindToggle(id, key){
   const wrap = document.getElementById(id);
@@ -617,6 +638,7 @@ function bindToggle(id, key){
       btn.classList.add('active');
       state[key] = btn.dataset.val;
       if(key === 'level') populateSplitDropdown();
+      if(key === 'workoutTime' && state.profile){ renderDiet(); renderSupplements(); }
     });
   });
 }
@@ -624,6 +646,7 @@ bindToggle('toggleGender','gender');
 bindToggle('toggleGoal','goal');
 bindToggle('toggleDiet','diet');
 bindToggle('toggleLevel','level');
+bindToggle('toggleWorkoutTime','workoutTime');
 
 function onDietPreferenceChange(){
   renderDietSelectors();
@@ -761,7 +784,7 @@ function renderDay(split, dayIndex){
       const card = document.createElement('div');
       card.className = 'exercise-card';
       card.innerHTML = `
-        <div class="diagram-box"><div class="exercise-photo photo-${muscleKey}"></div><p class="photo-label">Real gym photo · ${MUSCLES[muscleKey].view.toLowerCase()} focus</p></div>
+        <div class="diagram-box"><div class="exercise-photo ${photoClass(ex, muscleKey)}"></div><p class="photo-label">Real gym photo · ${MUSCLES[muscleKey].view.toLowerCase()} focus</p></div>
         <div class="exercise-body">
           <div class="top-row">
             <h3>${ex.name}</h3>
@@ -874,37 +897,62 @@ const MEAL_TEMPLATES = {
   ]
 };
 
-const dietSelections = {
-  protein:'Chicken breast',
-  carb:'Whole wheat roti',
-  fat:'Peanut butter'
-};
+const dietSelections = { protein:['Chicken breast'], carb:['Rice','Whole wheat roti'], fat:['Peanut butter'] };
 
 function renderDietSelectors(){
   const selectors = document.getElementById('dietSelectors');
   const foods = FOOD_SOURCES[state.diet];
-  const proteinOptions = foods.proteins.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
-  const carbOptions = foods.carbs.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
-  const fatOptions = foods.fats.map(item=>`<option value="${item.name}">${item.name}</option>`).join('');
+  if(!dietSelections.protein.some(name=>foods.proteins.some(item=>item.name === name))) dietSelections.protein = [foods.proteins[0].name];
+  if(!dietSelections.carb.some(name=>foods.carbs.some(item=>item.name === name))) dietSelections.carb = [foods.carbs[0].name];
+  if(!dietSelections.fat.some(name=>foods.fats.some(item=>item.name === name))) dietSelections.fat = [foods.fats[0].name];
+  const options = (items, selected) => items.map(item=>`<option value="${item.name}" ${selected.includes(item.name) ? 'selected' : ''}>${item.name}</option>`).join('');
   selectors.innerHTML = `
     <div class="diet-field">
-      <label>Choose protein</label>
-      <select id="dietProtein">${proteinOptions}</select>
+      <label>Choose proteins (hold Cmd/Ctrl for more)</label>
+      <select id="dietProtein" multiple size="5">${options(foods.proteins, dietSelections.protein)}</select>
     </div>
     <div class="diet-field">
-      <label>Choose carb</label>
-      <select id="dietCarb">${carbOptions}</select>
+      <label>Choose carbs (hold Cmd/Ctrl for more)</label>
+      <select id="dietCarb" multiple size="5">${options(foods.carbs, dietSelections.carb)}</select>
     </div>
     <div class="diet-field">
-      <label>Choose healthy fat</label>
-      <select id="dietFat">${fatOptions}</select>
+      <label>Choose healthy fats (hold Cmd/Ctrl for more)</label>
+      <select id="dietFat" multiple size="5">${options(foods.fats, dietSelections.fat)}</select>
     </div>
   `;
 
-  document.querySelectorAll('#dietSelectors select, #dietSelectors input').forEach(elm=>{
-    elm.addEventListener('change', renderDiet);
+  document.querySelectorAll('#dietSelectors select').forEach(elm=>{
+    elm.addEventListener('change', ()=>{
+      dietSelections.protein = selectedValues('dietProtein', dietSelections.protein);
+      dietSelections.carb = selectedValues('dietCarb', dietSelections.carb);
+      dietSelections.fat = selectedValues('dietFat', dietSelections.fat);
+      renderDiet(); renderSupplements();
+    });
     elm.addEventListener('input', renderDiet);
   });
+}
+
+function selectedValues(id, fallback){
+  const values = [...(document.getElementById(id)?.selectedOptions || [])].map(option=>option.value);
+  return values.length ? values : fallback;
+}
+
+function scaledMacro(food, grams){
+  const scale = grams / food.grams;
+  return { protein:(food.protein || 0)*scale, carbs:(food.carbs || 0)*scale, fat:(food.fat || 0)*scale, grams };
+}
+
+function mealTotal(items){
+  return items.reduce((total, item)=>({protein:total.protein+item.macro.protein, carbs:total.carbs+item.macro.carbs, fat:total.fat+item.macro.fat}), {protein:0,carbs:0,fat:0});
+}
+
+function macroText(total){
+  const kcal = total.protein*4 + total.carbs*4 + total.fat*9;
+  return `${Math.round(kcal)} kcal · ${Math.round(total.protein)}P / ${Math.round(total.carbs)}C / ${Math.round(total.fat)}F`;
+}
+
+function halfMacro(macro){
+  return {protein:macro.protein/2, carbs:macro.carbs/2, fat:macro.fat/2, grams:macro.grams/2};
 }
 
 function renderDiet(){
@@ -913,32 +961,57 @@ function renderDiet(){
   const el = document.getElementById('dietContent');
 
   const selected = {
-    protein: document.getElementById('dietProtein')?.value || dietSelections.protein,
-    carb: document.getElementById('dietCarb')?.value || dietSelections.carb,
-    fat: document.getElementById('dietFat')?.value || dietSelections.fat
+    protein: selectedValues('dietProtein', dietSelections.protein),
+    carb: selectedValues('dietCarb', dietSelections.carb),
+    fat: selectedValues('dietFat', dietSelections.fat)
   };
-
-  const lookup = (name) => [...foods.proteins, ...foods.carbs, ...foods.fats].find(item=>item.name===name) || foods.proteins[0];
-  const proteinItem = lookup(selected.protein);
-  const carbItem = lookup(selected.carb);
-  const fatItem = lookup(selected.fat);
-  const mealRows = [
-    ['Breakfast', `${selected.protein} (${proteinItem.grams}g)`, `${selected.carb} (${carbItem.grams}g)`, 'Add fruit or curd'],
-    ['Lunch', 'Dal (1.5 cups) + your protein choice', '2 chapatis + seasonal sabzi', 'Add salad and a small serving of your carb choice'],
-    ['Post-workout / snack', 'Whey or curd / Greek yogurt', 'Banana or fruit', `Add ${selected.fat} if it fits your calories`],
-    ['Dinner', `${selected.protein} (${proteinItem.grams}g)`, 'Dal + 2 chapatis + sabzi', 'Use a lighter portion of carbs when cutting']
+  const find = (list, name) => list.find(item=>item.name === name);
+  const proteins = selected.protein.map(name=>find(foods.proteins,name)).filter(Boolean);
+  const carbs = selected.carb.map(name=>find(foods.carbs,name)).filter(Boolean);
+  const fats = selected.fat.map(name=>find(foods.fats,name)).filter(Boolean);
+  const dal = find(foods.proteins, 'Moong dal / chana dal');
+  const roti = find(foods.carbs, 'Whole wheat roti');
+  const whey = find(foods.proteins, 'Whey protein');
+  const isEggChoice = proteins.some(item=>item.name.includes('Egg'));
+  const fullEggs = state.diet === 'nonveg' && isEggChoice ? (p.fat > 65 ? 3 : 2) : 0;
+  const eggWhites = state.diet === 'nonveg' && isEggChoice ? (p.protein > 130 ? 5 : 3) : 0;
+  const dalGrams = state.goal === 'bulk' ? 400 : state.goal === 'cut' ? 250 : 300;
+  const rotiCount = state.goal === 'bulk' ? 5 : state.goal === 'cut' ? 3 : 4;
+  const wheyGrams = 30;
+  const base = [scaledMacro(dal, dalGrams), scaledMacro(roti, rotiCount * 60), scaledMacro(whey, wheyGrams)];
+  if(fullEggs) base.push({protein:fullEggs*6, carbs:fullEggs*.5, fat:fullEggs*4, grams:fullEggs*50});
+  if(eggWhites) base.push({protein:eggWhites*3.5, carbs:0, fat:0, grams:eggWhites*33});
+  const baseTotal = base.reduce((a,b)=>({protein:a.protein+b.protein,carbs:a.carbs+b.carbs,fat:a.fat+b.fat}),{protein:0,carbs:0,fat:0});
+  const proteinShare = Math.max(0, p.protein - baseTotal.protein) / Math.max(proteins.length,1);
+  const carbShare = Math.max(0, p.carbs - baseTotal.carbs) / Math.max(carbs.length,1);
+  const fatShare = Math.max(0, p.fat - baseTotal.fat) / Math.max(fats.length,1);
+  const proteinPortions = proteins.map(item=>({name:item.name, macro:scaledMacro(item, Math.round(proteinShare / Math.max(item.protein / item.grams, .01) / 10) * 10)}));
+  const carbPortions = carbs.map(item=>({name:item.name, macro:scaledMacro(item, Math.round(carbShare / Math.max(item.carbs / item.grams, .01) / 10) * 10)}));
+  const fatPortions = fats.map(item=>({name:item.name, macro:scaledMacro(item, Math.round(fatShare / Math.max(item.fat / item.grams, .01) / 5) * 5)}));
+  const timing = {
+    morning:[['06:30 · Pre-workout','Half of a carb portion + water'],['08:30 · Post-workout',`Whey protein ${wheyGrams}g + fruit`],['13:00 · Lunch','Dal, chapati, sabzi and protein'],['20:00 · Dinner','Remaining protein, carbs and vegetables']],
+    afternoon:[['08:00 · Breakfast','Protein, carbs and healthy fat'],['12:30 · Lunch','Dal, chapati, sabzi and protein'],['16:00 · Pre-workout','Half of a carb portion + water'],['18:30 · Post-workout',`Whey protein ${wheyGrams}g, then dinner`]],
+    evening:[['08:00 · Breakfast','Protein, carbs and healthy fat'],['13:00 · Lunch','Dal, chapati, sabzi and protein'],['17:00 · Pre-workout','Half of a carb portion + water'],['20:30 · Post-workout',`Whey protein ${wheyGrams}g, then dinner`]]
+  }[state.workoutTime];
+  const mealItems = [
+    [{name:proteinPortions[0]?.name || 'Protein choice',macro:proteinPortions[0] ? halfMacro(proteinPortions[0].macro) : scaledMacro(foods.proteins[0],0)},{name:carbPortions[0]?.name || 'Carb choice',macro:carbPortions[0] ? halfMacro(carbPortions[0].macro) : scaledMacro(foods.carbs[0],0)},{name:fatPortions[0]?.name || 'Healthy fat',macro:fatPortions[0] ? halfMacro(fatPortions[0].macro) : scaledMacro(foods.fats[0],0)}],
+    [{name:`Dal ${dalGrams/2}g`,macro:scaledMacro(dal,dalGrams/2)},{name:`${Math.ceil(rotiCount/2)} chapatis`,macro:scaledMacro(roti,Math.ceil(rotiCount/2)*60)},{name:'Seasonal sabzi 200g',macro:{protein:4,carbs:16,fat:4}}],
+    [{name:`Whey protein ${wheyGrams}g`,macro:scaledMacro(whey,wheyGrams)},{name:'Banana / fruit',macro:{protein:1,carbs:27,fat:0}}],
+    [{name:proteinPortions[1]?.name || proteinPortions[0]?.name || 'Protein choice',macro:proteinPortions[1] ? halfMacro(proteinPortions[1].macro) : proteinPortions[0] ? halfMacro(proteinPortions[0].macro) : scaledMacro(foods.proteins[0],0)},{name:`Dal ${dalGrams/2}g + ${Math.floor(rotiCount/2)} chapatis`,macro:{protein:scaledMacro(dal,dalGrams/2).protein+scaledMacro(roti,Math.floor(rotiCount/2)*60).protein,carbs:scaledMacro(dal,dalGrams/2).carbs+scaledMacro(roti,Math.floor(rotiCount/2)*60).carbs,fat:scaledMacro(dal,dalGrams/2).fat+scaledMacro(roti,Math.floor(rotiCount/2)*60).fat}},{name:'Seasonal sabzi 200g',macro:{protein:4,carbs:16,fat:4}}]
   ];
+  if(fullEggs || eggWhites) mealItems[0].push({name:`${fullEggs} whole eggs + ${eggWhites} egg whites`,macro:{protein:fullEggs*6+eggWhites*3.5,carbs:fullEggs*.5,fat:fullEggs*4}});
+  const mealRows = timing.map((entry,index)=>[entry[0], entry[1], mealItems[index].map(item=>item.name).join(' + '), macroText(mealTotal(mealItems[index]))]);
 
   el.innerHTML = `
     <p style="max-width:680px;">Your target is <strong class="mono" style="color:var(--accent2);">${Math.round(p.target)} kcal/day</strong> —
     <strong class="mono" style="color:var(--accent);">${Math.round(p.protein)}g protein</strong>,
     <strong class="mono" style="color:var(--accent2);">${Math.round(p.carbs)}g carbs</strong>,
     <strong class="mono" style="color:var(--good);">${Math.round(p.fat)}g fat</strong>.
-    Choose only one protein, one carb, and one healthy fat. The plan uses those choices while keeping dal, chapati, and sabzi in your daily meals.</p>
+    Select as many protein, carb, and fat foods as you want. The quantities below are calculated from your targets, training time, and selected foods; they include dal, chapati, sabzi, whey, and an egg plan when eggs are selected.</p>
 
     <table class="meal-table">
       <thead>
-        <tr><th>Meal</th><th>Protein</th><th>Carbs / vegetables</th><th>How to build it</th></tr>
+        <tr><th>Time & meal</th><th>Purpose</th><th>Foods & portions</th><th>Meal macros</th></tr>
       </thead>
       <tbody>
         ${mealRows.map(row=>`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td></tr>`).join('')}
@@ -952,7 +1025,7 @@ function renderDiet(){
       <div class="swap-card"><h4>Fiber sources</h4><ul>${foods.fiber.map(f=>`<li>${f.name} · ${f.fiber}g fiber</li>`).join('')}</ul></div>
     </div>
 
-    <div class="note">Daily base: 1–2 bowls of dal, 4–6 chapatis (adjust up for bulking and down for cutting), and 2 servings of sabzi. Your selected ${selected.protein}, ${selected.carb}, and ${selected.fat} help you reach the macro targets above. Adjust portions with a food scale if you need closer calorie accuracy.</div>
+    <div class="note">Daily portions: ${dalGrams}g cooked dal, ${rotiCount} chapatis, 2 servings seasonal sabzi, ${wheyGrams}g whey${fullEggs || eggWhites ? `, ${fullEggs} whole eggs and ${eggWhites} egg whites` : ''}. Weigh cooked food for consistency. Macro values are estimates and can vary by recipe, oil, and brand.</div>
   `;
 }
 
@@ -963,18 +1036,20 @@ function renderSupplements(){
   const p = state.profile;
   const isVeg = state.diet === 'veg';
   const goal = state.goal;
+  const postWorkout = state.workoutTime === 'morning' ? 'after your morning workout' : state.workoutTime === 'afternoon' ? 'after your afternoon workout' : 'after your evening workout';
+  const creatineTiming = state.workoutTime === 'morning' ? 'With breakfast or after training' : state.workoutTime === 'afternoon' ? 'With lunch or after training' : 'With dinner or after training';
 
   const supps = [
     {
       code:'S-01', name: isVeg ? 'Whey Protein (dairy-based, veg-friendly)' : 'Whey Protein',
       flag: isVeg ? 'veg' : 'nonveg',
       desc:'Fills the gap when you can\'t hit your daily protein target from food alone. Fast-digesting, convenient around workouts.',
-      dosage:'1 scoop (~25g protein)', timing:'Post-workout or between meals'
+      dosage:'1 scoop (~25g protein)', timing:`${postWorkout} or between meals`
     },
     {
       code:'S-02', name:'Creatine Monohydrate', flag:'veg',
       desc:'The most well-studied strength supplement — improves power output and supports muscle growth over time. Safe for daily use.',
-      dosage:'3-5g / day', timing:'Any time of day, consistency matters more than timing'
+      dosage:'3-5g / day', timing:creatineTiming
     },
     {
       code:'S-03', name:'Multivitamin', flag:'veg',
