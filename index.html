@@ -148,6 +148,8 @@
   .photo-hamstrings,.photo-glutes{background-position:100% 100%;}
   .photo-alt-pushup,.photo-alt-fly,.photo-alt-row,.photo-alt-pushdown,.photo-alt-hipthrust,.photo-alt-calf{background-image:linear-gradient(0deg,rgba(20,22,26,.34),rgba(20,22,26,.05)),url('assets/workout-photos-alt.png');}
   .photo-alt-pushup{background-position:0 0;}.photo-alt-fly{background-position:100% 0;}.photo-alt-row{background-position:0 50%;}.photo-alt-pushdown{background-position:100% 50%;}.photo-alt-hipthrust{background-position:0 100%;}.photo-alt-calf{background-position:100% 100%;}
+  .photo-more-incline,.photo-more-seated-row,.photo-more-pullup,.photo-more-lateral,.photo-more-facepull,.photo-more-barbellcurl{background-image:linear-gradient(0deg,rgba(20,22,26,.34),rgba(20,22,26,.05)),url('assets/workout-photos-more.png');}
+  .photo-more-incline{background-position:0 0;}.photo-more-seated-row{background-position:100% 0;}.photo-more-pullup{background-position:0 50%;}.photo-more-lateral{background-position:100% 50%;}.photo-more-facepull{background-position:0 100%;}.photo-more-barbellcurl{background-position:100% 100%;}
   .photo-label{position:absolute;left:10px;bottom:10px;margin:0;background:rgba(20,22,26,.86);border:1px solid var(--line);padding:5px 7px;color:var(--ink);font:10px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;}
   .diagram-svg{width:100%; height:auto; max-height:220px;}
   .body-outline{fill:none; stroke:rgba(231,229,222,0.55); stroke-width:2;}
@@ -443,8 +445,8 @@ function exerciseImageSVG(muscleKey, exName){
 const EX = {
   chest: [
     {name:'Barbell Bench Press', levels:['beginner','intermediate'], sets:'4', reps:'6-10', tip:'Keep shoulder blades pinned back, lower bar to mid-chest, drive feet into the floor.'},
-    {name:'Push-Up', levels:['beginner'], sets:'3', reps:'To near-failure', tip:'Body in a straight line, hands under shoulders, full range of motion.'},
     {name:'Incline Dumbbell Press', levels:['beginner','intermediate'], sets:'3', reps:'8-12', tip:'30° incline targets upper chest — don\'t flare elbows past 75°.'},
+    {name:'Push-Up', levels:['beginner'], sets:'3', reps:'To near-failure', tip:'Body in a straight line, hands under shoulders, full range of motion.'},
     {name:'Cable Fly', levels:['intermediate'], sets:'3', reps:'12-15', tip:'Slight bend in elbow throughout, squeeze at the midline, control the negative.'},
   ],
   back: [
@@ -533,7 +535,17 @@ function photoClass(exercise, muscleKey){
   if(name === 'tricep pushdown') return 'photo-alt-pushdown';
   if(name === 'barbell hip thrust') return 'photo-alt-hipthrust';
   if(name === 'standing calf raise') return 'photo-alt-calf';
-  return '';
+  if(name === 'incline dumbbell press') return 'photo-more-incline';
+  if(name === 'seated cable row') return 'photo-more-seated-row';
+  if(name === 'pull-up') return 'photo-more-pullup';
+  if(name === 'lateral raise') return 'photo-more-lateral';
+  if(name === 'face pull') return 'photo-more-facepull';
+  if(name === 'barbell curl') return 'photo-more-barbellcurl';
+  return `photo-${muscleKey}`;
+}
+
+function hasExactPhoto(exercise){
+  return ['barbell bench press','lat pulldown','overhead dumbbell press','dumbbell hammer curl','barbell back squat','romanian deadlift','push-up','cable fly','bent-over barbell row','tricep pushdown','barbell hip thrust','standing calf raise','incline dumbbell press','seated cable row','pull-up','lateral raise','face pull','barbell curl'].includes(exercise.name.toLowerCase());
 }
 
 /* ======================================================================
@@ -790,9 +802,9 @@ function renderDay(split, dayIndex){
     exercises.forEach(ex=>{
       const card = document.createElement('div');
       const photo = photoClass(ex, muscleKey);
-      card.className = 'exercise-card' + (photo ? '' : ' no-photo');
+      card.className = 'exercise-card';
       card.innerHTML = `
-        ${photo ? `<div class="diagram-box"><div class="exercise-photo ${photo}"></div><p class="photo-label">Real gym photo · exact movement</p></div>` : ''}
+        <div class="diagram-box"><div class="exercise-photo ${photo}"></div><p class="photo-label">Real gym photo · ${hasExactPhoto(ex) ? 'exact movement' : MUSCLES[muscleKey].name + ' reference'}</p></div>
         <div class="exercise-body">
           <div class="top-row">
             <h3>${ex.name}</h3>
@@ -1003,15 +1015,27 @@ function renderDiet(){
     afternoon:[['08:00 · Breakfast','Protein, carbs and healthy fat'],['12:30 · Lunch','Dal, chapati, sabzi and protein'],['16:00 · Pre-workout','Half of a carb portion + water'],['18:30 · Post-workout',`Whey protein ${wheyGrams}g, then dinner`]],
     evening:[['08:00 · Breakfast','Protein, carbs and healthy fat'],['13:00 · Lunch','Dal, chapati, sabzi and protein'],['17:00 · Pre-workout','Half of a carb portion + water'],['20:30 · Post-workout',`Whey protein ${wheyGrams}g, then dinner`]]
   }[state.workoutTime];
-  const halfPortions = items => items.map(item=>{
-    const macro = halfMacro(item.macro);
+  const portion = (item, factor) => {
+    const macro = {protein:item.macro.protein*factor, carbs:item.macro.carbs*factor, fat:item.macro.fat*factor, grams:item.macro.grams*factor};
     return {name:`${item.name} (${Math.round(macro.grams)}g)`, macro};
-  });
+  };
+  const distribute = (items, mealCount) => {
+    const meals = Array.from({length:mealCount}, ()=>[]);
+    if(items.length === 1) {
+      for(let i=0; i<mealCount; i++) meals[i].push(portion(items[0], 1/mealCount));
+    } else {
+      items.forEach((item,index)=>meals[index % mealCount].push(portion(item, 1)));
+    }
+    return meals;
+  };
+  const proteinMeals = distribute(proteinPortions, 3);
+  const carbMeals = distribute(carbPortions, 2);
+  const fatMeals = distribute(fatPortions, 3);
   const mealItems = [
-    [...halfPortions(proteinPortions), ...halfPortions(carbPortions), ...halfPortions(fatPortions)],
-    [{name:`Dal ${dalGrams/2}g`,macro:scaledMacro(dal,dalGrams/2)},{name:`${Math.ceil(rotiCount/2)} chapatis`,macro:scaledMacro(roti,Math.ceil(rotiCount/2)*60)},{name:'Seasonal sabzi 200g',macro:{protein:4,carbs:16,fat:4}}],
+    [...proteinMeals[0], ...fatMeals[0]],
+    [...proteinMeals[1], ...carbMeals[0], ...fatMeals[1], {name:`Dal ${dalGrams/2}g`,macro:scaledMacro(dal,dalGrams/2)},{name:`${Math.ceil(rotiCount/2)} chapatis`,macro:scaledMacro(roti,Math.ceil(rotiCount/2)*60)},{name:'Seasonal sabzi 200g',macro:{protein:4,carbs:16,fat:4}}],
     [{name:`Whey protein ${wheyGrams}g`,macro:scaledMacro(whey,wheyGrams)},{name:'Banana / fruit',macro:{protein:1,carbs:27,fat:0}}],
-    [...halfPortions(proteinPortions), ...halfPortions(carbPortions), ...halfPortions(fatPortions), {name:`Dal ${dalGrams/2}g + ${Math.floor(rotiCount/2)} chapatis`,macro:{protein:scaledMacro(dal,dalGrams/2).protein+scaledMacro(roti,Math.floor(rotiCount/2)*60).protein,carbs:scaledMacro(dal,dalGrams/2).carbs+scaledMacro(roti,Math.floor(rotiCount/2)*60).carbs,fat:scaledMacro(dal,dalGrams/2).fat+scaledMacro(roti,Math.floor(rotiCount/2)*60).fat}},{name:'Seasonal sabzi 200g',macro:{protein:4,carbs:16,fat:4}}]
+    [...proteinMeals[2], ...carbMeals[1], ...fatMeals[2], {name:`Dal ${dalGrams/2}g + ${Math.floor(rotiCount/2)} chapatis`,macro:{protein:scaledMacro(dal,dalGrams/2).protein+scaledMacro(roti,Math.floor(rotiCount/2)*60).protein,carbs:scaledMacro(dal,dalGrams/2).carbs+scaledMacro(roti,Math.floor(rotiCount/2)*60).carbs,fat:scaledMacro(dal,dalGrams/2).fat+scaledMacro(roti,Math.floor(rotiCount/2)*60).fat}},{name:'Seasonal sabzi 200g',macro:{protein:4,carbs:16,fat:4}}]
   ];
   if(fullEggs || eggWhites) mealItems[0].push({name:`${fullEggs} whole eggs + ${eggWhites} egg whites`,macro:{protein:fullEggs*6+eggWhites*3.5,carbs:fullEggs*.5,fat:fullEggs*4}});
   const mealRows = timing.map((entry,index)=>[entry[0], entry[1], mealItems[index].map(item=>item.name).join(' + '), macroText(mealTotal(mealItems[index]))]);
